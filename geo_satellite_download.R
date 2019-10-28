@@ -4,16 +4,20 @@
 
 # changelog
 	# 2019.10.27 - Updated handling of cropping and resizing to make more automatic
+	# 2019.10.28 - Removed wget call (since Windows systems do not have by default) and let download.file use curl to avoid issues with image files being corrupt when downloaded using wininet method. Save video to its own directory.
 # TODO
 	# Add a GUI so users can pick two crop areas and will automatically do the rest
 
 # Load necessary packages
-lapply(c("xml2","rvest","imager","magick",'grid'),FUN=function(file){if(!require(file,character.only = TRUE)){install.packages(file,dep=TRUE);library(file)}})
+for (i in c(1:2)) {
+	lapply(c("xml2","rvest","imager","magick",'grid',"HelpersMG"),FUN=function(file){if(!require(file,character.only = TRUE)){install.packages(file,dep=TRUE);}})
+}
 
 # =================================================
 # Set locations for downloading files along with cropped versions
-downloadLocation = 'data/'
-downloadLocationCrop = 'data_crop/'
+downloadLocation = paste0(getwd(),'/','data/')
+downloadLocationCrop = paste0(getwd(),'/','data_crop/')
+downloadLocationVideo = paste0(getwd(),'/','video/')
 
 # Parameters
 sunsetTime = 0060
@@ -62,12 +66,15 @@ for (fileNo in c(1:nLinks)) {
 	successList[fileNo] = 0
 	if(!file.exists(destfile)){
 		print(paste0(fileNo,'/',nLinks,' | Downloading: ',destfile))
+		res = 0
 		res <- tryCatch(
-			download.file(fileURL,
-				destfile=destfile,
-				method="wget"),
+			# download.file(fileURL,
+			# 	destfile=destfile,
+			# 	method="wget"),
+			# wget(fileURL,destfile=destfile,quiet=TRUE,cacheOK = FALSE),
+			download.file(fileURL,destfile=destfile,quiet=TRUE,cacheOK = FALSE,method="curl"),
 		error=function(e) 1)
-		if(res==0){
+		if(length(res)==0||res==0){
 			successList[fileNo] = 1
 		}else{
 			successList[fileNo] = 0
@@ -137,9 +144,18 @@ for (fileNo in c(1:nLinks)) {
 		dev.off()
 		# stop()
 	}else{
+		# Load file
+		finalImg <- image_read(destfile)
+		# Concatenate images to later create video file
+		if(length(videoImg)==0){
+			videoImg = finalImg
+		}else{
+			videoImg = image_join(videoImg,finalImg)
+		}
+
 		print(paste0(fileNo,'/',nLinks,' | Don\'t copy: ',destfile))
 	}
 }
 
 # Save as a video for later viewing
-image_write_video(videoImg, path = paste0(downloadLocationCrop,'geo_satellite_download.mp4'), framerate = 20)
+image_write_video(videoImg, path = paste0(downloadLocationVideo,'geo_satellite_download.mp4'), framerate = 20)
