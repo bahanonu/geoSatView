@@ -12,7 +12,7 @@ This script performs the following actions:
 To run, download R then make the working directory in `R` the repository root directory and type the below.
 
 ```R
-source('geo_satellite_download.R')
+source('geoSatView.R')
 ```
 
 Below is an example output. The script is also a useful reference for those looking to manipulate images in R and create a video.
@@ -20,7 +20,7 @@ Below is an example output. The script is also a useful reference for those look
 ![tmp2-1](https://user-images.githubusercontent.com/5241605/67650471-471b6180-f8fa-11e9-9731-87a24b11edf4.gif)
 
 Notes:
-- Open `geo_satellite_download.R` to edit further from defaults as needed.
+- Open `geoSatView.R` to edit further from defaults as needed.
 - [ImageJ](https://imagej.nih.gov/ij/) is a useful tool for adjusting the crop defaults.
 - The script will skip existing files during downloading and cropping. For cropping, delete all files in the directory if want to make a fresh video.
 
