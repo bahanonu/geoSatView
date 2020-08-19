@@ -1,20 +1,23 @@
-# `geo_satellite_download`: R-script to download GOES-16 satellite data and make video animation
+# geoSatView
+
+## Download GOES-16 satellite data and make video animation using [R](https://www.r-project.org/).
 
 This script performs the following actions:
-- Downloads GOES-16 satellite data (https://cdn.star.nesdis.noaa.gov/GOES16/ABI/SECTOR/psw/GEOCOLOR/)
+- Downloads GOES-16 satellite data (https://cdn.star.nesdis.noaa.gov/GOES16/ABI/SECTOR/psw/GEOCOLOR/) into `data` folder.
 - Crops the image (default is focused on California and the Bay Area).
-- Combines the cropped images and associated timestamps.
-- Then saves out a video file (default `mp4`).
+- Combines the cropped images and associated timestamps into a single image and saves to `data_crop` folder.
+- Then saves out a video file (default `mp4`) to `video` folder.
 
-Below is an example output. The script is also a useful reference for those looking to manipulate images in R.
-
-![tmp2-1](https://user-images.githubusercontent.com/5241605/67650471-471b6180-f8fa-11e9-9731-87a24b11edf4.gif)
-
-To run, direct `R` to the repository root directory and type the below.
+### Usage
+To run, download R then make the working directory in `R` the repository root directory and type the below.
 
 ```R
 source('geo_satellite_download.R')
 ```
+
+Below is an example output. The script is also a useful reference for those looking to manipulate images in R and create a video.
+
+![tmp2-1](https://user-images.githubusercontent.com/5241605/67650471-471b6180-f8fa-11e9-9731-87a24b11edf4.gif)
 
 Notes:
 - Open `geo_satellite_download.R` to edit further from defaults as needed.
@@ -23,6 +26,6 @@ Notes:
 
 ## License
 
-Biafra Ahanonu <bahanonu@gmail.com>
+Copyright (c) 2018–2020 Biafra Ahanonu
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU. Attribution is appreciated, but not required, if parts of the software are used elsewhere.
