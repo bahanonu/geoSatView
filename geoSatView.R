@@ -10,8 +10,10 @@
 	# 2020.08.19 [11:17:03] - If file outside user specified time window, do not add to video.
 	# 2020.08.19 [11:36:16] - Added automatic calculation of sunrise and sunset using suncalc package. Will also automatically load previously cropped images if want to re-create the video output after already downloading/cropping images. Added 'av' package loading.
 	# 2020.08.24 [12:22:03] - Made downloading of the files parallel.
+	# 2020.09.11 [11:26:20] - Added additional crop type and save movie file based on system time. Automatically check for and create sub-directories.
 # TODO
 	# Add a GUI so users can pick two crop areas and will automatically do the rest
+	# Potentially convert to EBImage for processing images, could be faster.
 
 # Load necessary packages
 for (i in c(1:2)) {
@@ -23,13 +25,22 @@ for (i in c(1:2)) {
 # detect the number of cores
 n.cores <- detectCores()
 
-
 # =================================================
 # PARAMETERS
 # Set locations for downloading files along with cropped versions
 downloadLocation = paste0(getwd(),'/','data/')
 downloadLocationCrop = paste0(getwd(),'/','data_crop/')
 downloadLocationVideo = paste0(getwd(),'/','video/')
+
+# Create sub-directories if they do not already exist.
+for (dirHere in c(downloadLocation,downloadLocationCrop,downloadLocationVideo)) {
+	if(dir.exists(dirHere)==TRUE){
+		print(paste0('Directory exists: ',dirHere))
+	}else{
+		print(paste0('Creating: ',dirHere))
+		dir.create(dirHere)
+	}
+}
 
 # Automatically get UTC time for sunset and sunrise near San Francisco, CA
 sunTime = getSunlightTimes(Sys.Date(),lat = 37.7749, lon = -122.4194,tz = "UTC")
@@ -38,17 +49,33 @@ sunriseTime = as.numeric(format(strptime(sunTime$dawn,"%Y-%m-%d %H:%M:%S"),'%H%M
 
 # Crop parameters in pixels, based on 2400x2400 input images
 # See https://cran.r-project.org/web/packages/magick/vignettes/intro.html
-# Crop area for zoomed out view
-cropWidth = 1000
-cropHeight = 1432
-cropX = 0
-cropY = 597
+cropType = 2
+if(cropType==1){
+	# Crop area for zoomed out view
+	cropWidth = 1000
+	cropHeight = 1432
+	cropX = 0
+	cropY = 597
 
-# Crop area for zoomed in view
-cropWidth2 = 252
-cropHeight2 = 368
-cropX2 = 206
-cropY2 = 422
+	# Crop area for zoomed in view, based on
+	cropWidth2 = 252
+	cropHeight2 = 368
+	cropX2 = 206
+	cropY2 = 422
+}else if(cropType==2){
+	# Crop area for zoomed out view
+	cropWidth = 1300
+	cropHeight = 2040
+	cropX = 0
+	cropY = 0
+
+	# Crop area for zoomed in view, based on
+	cropWidth2 = 220
+	cropHeight2 = 400
+	cropX2 = 222
+	cropY2 = 1000
+}
+
 
 # Crop area for time stamp on bottom
 timeWidth = 1242
@@ -140,8 +167,8 @@ for (fileNo in c(1:nLinks)) {
 		# Read the image and make combined zoomed in and zoomed out crop image
 		frink <- image_read(destfile)
 		cropImg = image_crop(frink, paste0(cropWidth,"x",cropHeight,"+",cropX,"+",cropY))
-
-		cropImg2 = image_crop(cropImg, paste0(cropWidth2,"x",cropHeight2,"+",cropX2,"+",cropY2))
+		cropImg2 = image_crop(frink, paste0(cropWidth2,"x",cropHeight2,"+",cropX2,"+",cropY2))
+		# cropImg2 = image_crop(cropImg, paste0(cropWidth2,"x",cropHeight2,"+",cropX2,"+",cropY2))
 		# cropImg2 = image_border(image_background(cropImg2, "black"), "#000000", "5x5")
 		cropImg2 = image_border(image_background(cropImg2, "white"), "#FFFFFF", "6x6")
 
@@ -155,7 +182,8 @@ for (fileNo in c(1:nLinks)) {
 		if((dsWidth %% 2)!=0){
 			dsWidth = dsWidth + 1
 		}
-		dsDims = paste0(dsWidth,"x")
+		# dsDims = paste0(dsWidth,"x")
+		dsDims = paste0("x",dsHeight)
 
 		cropImg = image_scale(cropImg,dsDims)
 		cropImg2 = image_scale(cropImg2,dsDims)
@@ -221,5 +249,6 @@ for (fileNo in c(1:nLinks)) {
 # =================================================
 # Save as a video for later viewing
 if(createVidFlag==1){
-	image_write_video(videoImg, path = paste0(downloadLocationVideo,'geo_satellite_download.mp4'), framerate = 40)
+	videoName = paste0('geo_satellite_download',format(Sys.time(),'%Y_%m_%d_%H-%M-%S'),'.mp4')
+	image_write_video(videoImg, path = paste0(downloadLocationVideo,videoName), framerate = 40)
 }
