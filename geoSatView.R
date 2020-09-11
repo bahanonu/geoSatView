@@ -9,20 +9,13 @@
 	# 2019.10.28 - Removed wget call (since Windows systems do not have by default) and let download.file use curl to avoid issues with image files being corrupt when downloaded using wininet method. Save video to its own directory.
 	# 2020.08.19 [11:17:03] - If file outside user specified time window, do not add to video.
 	# 2020.08.19 [11:36:16] - Added automatic calculation of sunrise and sunset using suncalc package. Will also automatically load previously cropped images if want to re-create the video output after already downloading/cropping images. Added 'av' package loading.
-	# 2020.08.24 [12:22:03] - Made downloading of the files parallel.
 # TODO
 	# Add a GUI so users can pick two crop areas and will automatically do the rest
 
 # Load necessary packages
 for (i in c(1:2)) {
-	lapply(c("xml2","rvest","imager","magick",'grid',"HelpersMG","suncalc","av","parallel"),FUN=function(file){if(!require(file,character.only = TRUE)){install.packages(file,dep=TRUE);}})
+	lapply(c("xml2","rvest","imager","magick",'grid',"HelpersMG","suncalc","av"),FUN=function(file){if(!require(file,character.only = TRUE)){install.packages(file,dep=TRUE);}})
 }
-
-# =================================================
-# Setup cluster
-# detect the number of cores
-n.cores <- detectCores()
-
 
 # =================================================
 # PARAMETERS
@@ -80,9 +73,8 @@ urlList = urlList[grep('GOES16',urlList)]
 # Download
 successList = c()
 nLinks = length(urlList)
-# for (fileNo in c(1:nLinks)) {
-downloadImages <- function(fileNo){
-  fileName = urlList[fileNo]
+for (fileNo in c(1:nLinks)) {
+	fileName = urlList[fileNo]
 	destfile = paste0(downloadLocation,fileName)
 	fileURL = paste0(URL,fileName)
 	successList[fileNo] = 0
@@ -106,15 +98,7 @@ downloadImages <- function(fileNo){
 		print(paste0(fileNo,'/',nLinks,' | Already downloaded: ',destfile))
 		successList[fileNo] = 1
 	}
-	return(successList[fileNo])
 }
-
-system.time({
-  clust <- makeCluster(n.cores+4,outfile="progress.log")
-  clusterExport(clust, c("urlList","downloadLocation","URL","successList","nLinks"))
-  successList <- parLapply(clust, c(1:nLinks), downloadImages)})
-
-stopCluster(clust)
 
 # =================================================
 # Find all image files, crop, and save to alternative folder
