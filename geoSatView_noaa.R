@@ -15,11 +15,6 @@
 	# Add a GUI so users can pick two crop areas and will automatically do the rest
 	# Potentially convert to EBImage for processing images, could be faster.
 
-# Load necessary packages
-for (i in c(1:2)) {
-	lapply(c("xml2","rvest","imager","magick",'grid',"HelpersMG","suncalc","av","parallel"),FUN=function(file){if(!require(file,character.only = TRUE)){install.packages(file,dep=TRUE);}})
-}
-
 # =================================================
 # Setup cluster
 # detect the number of cores
@@ -52,19 +47,19 @@ if(geosType=="GOES16"){
 # =================================================
 # PARAMETERS
 # Set locations for downloading files along with cropped versions
-downloadLocation = paste0(getwd(),'/','data/')
-downloadLocationCrop = paste0(getwd(),'/','data_crop/')
-downloadLocationVideo = paste0(getwd(),'/','video/')
+dowloadDir = file.path(dataDir,'data')
+downloadLocation = file.path(getwd(),dataDir,'data/')
+downloadLocationCrop = file.path(getwd(),dataDir,'data_crop/')
+downloadLocationVideo = file.path(getwd(),'video/')
 
-# Create sub-directories if they do not already exist.
-for (dirHere in c(downloadLocation,downloadLocationCrop,downloadLocationVideo)) {
-	if(dir.exists(dirHere)==TRUE){
-		print(paste0('Directory exists: ',dirHere))
-	}else{
-		print(paste0('Creating: ',dirHere))
-		dir.create(dirHere)
-	}
-}
+# VIDEO SETTINGS
+# Binary: 1 = create AVI video, 0 = do not create video, 2 = create using ffmpeg system call (fastest)
+# createVidFlag = 2
+framerate = 60
+runID = format(Sys.time(),'%Y_%m_%d_%H-%M-%S')
+fileListSavePath = file.path(downloadLocationVideo,paste0('geoSatView_noaa_vidList_',runID,'.txt'))
+videoName = paste0('geoSatView_noaa_',runID,'.mp4')
+videoName = file.path(downloadLocationVideo,videoName)
 
 # Automatically get UTC time for sunset and sunrise near San Francisco, CA
 sunTime = getSunlightTimes(Sys.Date(),lat = 37.7749, lon = -122.4194,tz = "UTC")
@@ -136,9 +131,16 @@ if(geosType=="GOES16"){
 
 }
 
-# Binary: 1 = create AVI video, 0 = do not create video
-createVidFlag = 1
-
+# =================================================
+# Create sub-directories if they do not already exist.
+for (dirHere in c(downloadLocation,downloadLocationCrop,downloadLocationVideo)) {
+	if(dir.exists(dirHere)==TRUE){
+		print(paste0('Directory exists: ',dirHere))
+	}else{
+		print(paste0('Creating: ',dirHere))
+		dir.create(dirHere)
+	}
+}
 
 # =================================================
 # Download
@@ -147,7 +149,7 @@ nLinks = length(urlList)
 # for (fileNo in c(1:nLinks)) {
 downloadImages <- function(fileNo){
   fileName = urlList[fileNo]
-	destfile = paste0(downloadLocation,fileName)
+	destfile = file.path(downloadLocation,fileName)
 	fileURL = paste0(URL,fileName)
 	successList[fileNo] = 0
 	if(!file.exists(destfile)){
@@ -180,6 +182,17 @@ system.time({
 
 stopCluster(clust)
 
+
+# =================================================
+# Make video using ffmpeg
+if(createVidFlag==2){
+	geoSatView_makeVideoList(downloadLocationCrop,fileListSavePath,2,sunsetTime,sunriseTime,downloadLocationVideo,dowloadDir,8,11,"NOAA")
+	shellCmd = paste0('ffmpeg.exe -r "',framerate,'" -f concat -safe 0 -i ',fileListSavePath,' -c:v libx264 -pix_fmt yuv420p "',videoName,'"')
+	shell(shellCmd)
+	# system(shellCmd)
+	stop()
+}
+
 # =================================================
 # Find all image files, crop, and save to alternative folder
 fileList <- list.files(downloadLocation, "jpg")
@@ -188,8 +201,8 @@ videoImg = c()
 
 for (fileNo in c(1:nLinks)) {
 	fileName = fileList[fileNo]
-	destfile = paste0(downloadLocation,fileName)
-	cropDestFile = paste0(downloadLocationCrop,fileName)
+	destfile = file.path(downloadLocation,fileName)
+	cropDestFile = file.path(downloadLocationCrop,fileName)
 
 	# Get the filetime and exclude most night images
 	fileTime = as.numeric(substr(fileName,8,11))
@@ -311,6 +324,6 @@ for (fileNo in c(1:nLinks)) {
 # =================================================
 # Save as a video for later viewing
 if(createVidFlag==1){
-	videoName = paste0('geoSatView_output_',format(Sys.time(),'%Y_%m_%d_%H-%M-%S'),'.mp4')
+	videoName = file.path(downloadLocationVideo,paste0('geoSatView_output_',format(Sys.time(),'%Y_%m_%d_%H-%M-%S'),'.mp4'))
 	image_write_video(videoImg, path = paste0(downloadLocationVideo,videoName), framerate = 40)
 }
