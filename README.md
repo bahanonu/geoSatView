@@ -1,9 +1,9 @@
 # geoSatView
 
-## Download GOES-16 satellite data and make video animation using [R](https://www.r-project.org/).
+## Downloads GOES (GEOS-16 or GEOS-17 currently) satellite data and makes video animation using [R](https://www.r-project.org/).
 
 This script performs the following actions:
-- Downloads GOES-16 satellite data (https://cdn.star.nesdis.noaa.gov/GOES16/ABI/SECTOR/psw/GEOCOLOR/) into `data` folder.
+- Downloads GOES (GEOS-16 or GEOS-17 currently) satellite data (https://cdn.star.nesdis.noaa.gov/GOES16/ABI/SECTOR/psw/GEOCOLOR/) into `data` folder.
 - Crops the image (default is focused on California and the Bay Area).
 - Combines the cropped images and associated timestamps into a single image and saves to `data_crop` folder.
 - Then saves out a video file (default `mp4`) to `video` folder.

@@ -26,6 +26,30 @@ for (i in c(1:2)) {
 n.cores <- detectCores()
 
 # =================================================
+# Download parameters and information
+# Str: either GOES17 or GOES16
+geosType = 'GOES17'
+# GEOS16 GEOCOLOR URL
+# URL <- "https://cdn.star.nesdis.noaa.gov/GOES16/ABI/SECTOR/psw/GEOCOLOR/"
+# GOES17 GEOCOLOR URL for https://www.star.nesdis.noaa.gov/GOES/conus.php?sat=G17
+URL <- "https://cdn.star.nesdis.noaa.gov/GOES17/ABI/CONUS/GEOCOLOR/"
+
+# Read in the HTML tree
+pg <- read_html(URL)
+# Parse out only largest scale GEOS16 images
+urlList = html_attr(html_nodes(pg, "a"), "href")
+print(head(urlList))
+
+if(geosType=="GOES16"){
+	# urlList = urlList[grep('1200x1200',urlList)]
+	urlList = urlList[grep('2400x2400',urlList)]
+	urlList = urlList[grep('GOES16',urlList)]
+}else if(geosType=="GOES17"){
+	urlList = urlList[grep('2500x1500',urlList)]
+	urlList = urlList[grep('GOES17',urlList)]
+}
+
+# =================================================
 # PARAMETERS
 # Set locations for downloading files along with cropped versions
 downloadLocation = paste0(getwd(),'/','data/')
@@ -47,61 +71,74 @@ sunTime = getSunlightTimes(Sys.Date(),lat = 37.7749, lon = -122.4194,tz = "UTC")
 sunsetTime = as.numeric(format(strptime(sunTime$dusk,"%Y-%m-%d %H:%M:%S"),'%H%M'))
 sunriseTime = as.numeric(format(strptime(sunTime$dawn,"%Y-%m-%d %H:%M:%S"),'%H%M'))
 
-# Crop parameters in pixels, based on 2400x2400 input images
-# See https://cran.r-project.org/web/packages/magick/vignettes/intro.html
-cropType = 2
-if(cropType==1){
+if(geosType=="GOES16"){
+	# Crop parameters in pixels, based on 2400x2400 input images
+	# See https://cran.r-project.org/web/packages/magick/vignettes/intro.html
+	cropType = 2
+	if(cropType==1){
+		# Crop area for zoomed out view
+		cropWidth = 1000
+		cropHeight = 1432
+		cropX = 0
+		cropY = 597
+
+		# Crop area for zoomed in view, based on
+		cropWidth2 = 252
+		cropHeight2 = 368
+		cropX2 = 206
+		cropY2 = 422
+	}else if(cropType==2){
+		# Crop area for zoomed out view
+		cropWidth = 1300
+		cropHeight = 2040
+		cropX = 0
+		cropY = 0
+
+		# Crop area for zoomed in view, based on
+		cropWidth2 = 220
+		cropHeight2 = 400
+		cropX2 = 222
+		cropY2 = 1000
+	}
+	# Crop area for time stamp on bottom
+	timeWidth = 1242
+	timeHeight = 42
+	timeX = 573
+	timeY = 2358
+	# Factor to downsample
+	cropDownsampleFactor = 2
+
+}else if(geosType=="GOES17"){
 	# Crop area for zoomed out view
-	cropWidth = 1000
-	cropHeight = 1432
-	cropX = 0
-	cropY = 597
+	cropWidth = 2260-500+1
+	cropHeight = 608
+	cropX = 0+500+1
+	cropY = 50
 
 	# Crop area for zoomed in view, based on
-	cropWidth2 = 252
-	cropHeight2 = 368
-	cropX2 = 206
-	cropY2 = 422
-}else if(cropType==2){
-	# Crop area for zoomed out view
-	cropWidth = 1300
-	cropHeight = 2040
-	cropX = 0
-	cropY = 0
+	cropWidth2 = 278
+	cropHeight2 = 516-50
+	cropX2 = 1672
+	cropY2 = 52
 
-	# Crop area for zoomed in view, based on
-	cropWidth2 = 220
-	cropHeight2 = 400
-	cropX2 = 222
-	cropY2 = 1000
+	# Crop area for time stamp on bottom
+	# timeWidth = 848
+	# timeHeight = 30
+	# timeX = 820
+	# timeY = 1470
+	timeWidth = cropWidth
+	timeHeight = 30
+	timeX = cropX
+	timeY = 1470
+
+	# Factor to downsample
+	cropDownsampleFactor = 1
+
 }
-
-
-# Crop area for time stamp on bottom
-timeWidth = 1242
-timeHeight = 42
-timeX = 573
-timeY = 2358
-
-# Factor to downsample
-cropDownsampleFactor = 2
 
 # Binary: 1 = create AVI video, 0 = do not create video
 createVidFlag = 1
 
-# =================================================
-# Download parameters and information
-# GEOS16 GEOCOLOR URL
-URL <- "https://cdn.star.nesdis.noaa.gov/GOES16/ABI/SECTOR/psw/GEOCOLOR/"
-
-# Read in the HTML tree
-pg <- read_html(URL)
-# Parse out only largest scale GEOS16 images
-urlList = html_attr(html_nodes(pg, "a"), "href")
-print(head(urlList))
-# urlList = urlList[grep('1200x1200',urlList)]
-urlList = urlList[grep('2400x2400',urlList)]
-urlList = urlList[grep('GOES16',urlList)]
 
 # =================================================
 # Download
@@ -185,23 +222,48 @@ for (fileNo in c(1:nLinks)) {
 		# dsDims = paste0(dsWidth,"x")
 		dsDims = paste0("x",dsHeight)
 
-		cropImg = image_scale(cropImg,dsDims)
-		cropImg2 = image_scale(cropImg2,dsDims)
-		combineImg = image_append(c(cropImg,cropImg2),stack = FALSE)
-		combineImgInfo = data.frame(image_info(combineImg))
+		if(TRUE|geosType=="GOES16"){
+			cropImg = image_scale(cropImg,dsDims)
+			cropImg2 = image_scale(cropImg2,dsDims)
+			combineImg = image_append(c(cropImg,cropImg2),stack = FALSE)
+			combineImgInfo = data.frame(image_info(combineImg))
 
-		# Get time-stamp and make the same width as total image
-		timeImg = image_crop(frink, paste0(timeWidth,"x",timeHeight,"+",timeX,"+",timeY))
-		timeImg = image_scale(timeImg,combineImgInfo$width)
-		timeImgInfo = data.frame(image_info(timeImg))
-		if((timeImgInfo$height %% 2)!=0){
-			timeImg = image_crop(timeImg, paste0(timeImgInfo$width,"x",timeImgInfo$height-1,"+",0,"+",0))
+			# Get time-stamp and make the same width as total image
+			timeImg = image_crop(frink, paste0(timeWidth,"x",timeHeight,"+",timeX,"+",timeY))
+			timeImg = image_scale(timeImg,combineImgInfo$width)
+			timeImgInfo = data.frame(image_info(timeImg))
+			if((timeImgInfo$height %% 2)!=0){
+				timeImg = image_crop(timeImg, paste0(timeImgInfo$width,"x",timeImgInfo$height-1,"+",0,"+",0))
+			}
+
+			# Combine images with timestamp
+			finalImg = image_append(c(combineImg,timeImg),stack = TRUE)
+			# finalImg = image_crop(finalImg, paste0(972,"x",732,"+",0,"+",0))
+			finalImgInfo = data.frame(image_info(finalImg))
+		}else if(geosType=="GOES17"){
+			cropImg = image_scale(cropImg,dsDims)
+
+
+
+			cropImg2Info = data.frame(image_info(cropImg2))
+
+			# Get time-stamp and make the same width as total image
+			timeImg = image_crop(frink, paste0(timeWidth,"x",timeHeight,"+",timeX,"+",timeY))
+			timeImg = image_scale(timeImg,cropImg2Info$width)
+			timeImgInfo = data.frame(image_info(timeImg))
+			if((timeImgInfo$height %% 2)!=0){
+				timeImg = image_crop(timeImg, paste0(timeImgInfo$width,"x",timeImgInfo$height-1,"+",0,"+",0))
+			}
+
+			combineImg = image_append(c(cropImg2,timeImg),stack = TRUE)
+			combineImgInfo = data.frame(image_info(combineImg))
+			combineImg = image_scale(combineImg,dsDims)
+
+			# Combine images with timestamp
+			finalImg = image_append(c(cropImg,combineImg),stack = FALSE)
+			# finalImg = image_crop(finalImg, paste0(972,"x",732,"+",0,"+",0))
+			finalImgInfo = data.frame(image_info(finalImg))
 		}
-
-		# Combine images with timestamp
-		finalImg = image_append(c(combineImg,timeImg),stack = TRUE)
-		# finalImg = image_crop(finalImg, paste0(972,"x",732,"+",0,"+",0))
-		finalImgInfo = data.frame(image_info(finalImg))
 
 		# Concatenate images to later create video file
 		if(createVidFlag==1){
@@ -249,6 +311,6 @@ for (fileNo in c(1:nLinks)) {
 # =================================================
 # Save as a video for later viewing
 if(createVidFlag==1){
-	videoName = paste0('geo_satellite_download',format(Sys.time(),'%Y_%m_%d_%H-%M-%S'),'.mp4')
+	videoName = paste0('geoSatView_output_',format(Sys.time(),'%Y_%m_%d_%H-%M-%S'),'.mp4')
 	image_write_video(videoImg, path = paste0(downloadLocationVideo,videoName), framerate = 40)
 }

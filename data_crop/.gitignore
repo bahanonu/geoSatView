@@ -1,6 +1,0 @@
-# Biafra Ahanonu
-
-# ignore the private folder where user information is stored
-*.jpg
-crop/
-data/
