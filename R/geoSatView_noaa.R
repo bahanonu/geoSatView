@@ -24,10 +24,14 @@ n.cores <- detectCores()
 # Download parameters and information
 # Str: either GOES17 or GOES16
 geosType = 'GOES17'
-# GEOS16 GEOCOLOR URL
-# URL <- "https://cdn.star.nesdis.noaa.gov/GOES16/ABI/SECTOR/psw/GEOCOLOR/"
-# GOES17 GEOCOLOR URL for https://www.star.nesdis.noaa.gov/GOES/conus.php?sat=G17
-URL <- "https://cdn.star.nesdis.noaa.gov/GOES17/ABI/CONUS/GEOCOLOR/"
+
+if(geosType=="GOES16"){
+	# GEOS16 GEOCOLOR URL
+	URL <- "https://cdn.star.nesdis.noaa.gov/GOES16/ABI/SECTOR/psw/GEOCOLOR/"
+}else if(geosType=="GOES17"){
+	# GOES17 GEOCOLOR URL for https://www.star.nesdis.noaa.gov/GOES/conus.php?sat=G17
+	URL <- "https://cdn.star.nesdis.noaa.gov/GOES17/ABI/CONUS/GEOCOLOR/"
+}
 
 # Read in the HTML tree
 pg <- read_html(URL)
@@ -47,7 +51,7 @@ if(geosType=="GOES16"){
 # =================================================
 # PARAMETERS
 # Set locations for downloading files along with cropped versions
-dowloadDir = file.path(dataDir,'data')
+dowloadDir = file.path(dataDir,'data_crop/')
 downloadLocation = file.path(getwd(),dataDir,'data/')
 downloadLocationCrop = file.path(getwd(),dataDir,'data_crop/')
 downloadLocationVideo = file.path(getwd(),'video/')
@@ -55,7 +59,7 @@ downloadLocationVideo = file.path(getwd(),'video/')
 # VIDEO SETTINGS
 # Binary: 1 = create AVI video, 0 = do not create video, 2 = create using ffmpeg system call (fastest)
 # createVidFlag = 2
-framerate = 60
+framerate = 35
 runID = format(Sys.time(),'%Y_%m_%d_%H-%M-%S')
 fileListSavePath = file.path(downloadLocationVideo,paste0('geoSatView_noaa_vidList_',runID,'.txt'))
 videoName = paste0('geoSatView_noaa_',runID,'.mp4')
@@ -190,9 +194,8 @@ if(createVidFlag==2){
 	shellCmd = paste0('ffmpeg.exe -r "',framerate,'" -f concat -safe 0 -i ',fileListSavePath,' -c:v libx264 -pix_fmt yuv420p "',videoName,'"')
 	shell(shellCmd)
 	# system(shellCmd)
-	stop()
-}
-
+	# stop()
+}else if(createVidFlag==1){
 # =================================================
 # Find all image files, crop, and save to alternative folder
 fileList <- list.files(downloadLocation, "jpg")
@@ -321,9 +324,8 @@ for (fileNo in c(1:nLinks)) {
 	}
 }
 
-# =================================================
-# Save as a video for later viewing
-if(createVidFlag==1){
+	# =================================================
+	# Save as a video for later viewing
 	videoName = file.path(downloadLocationVideo,paste0('geoSatView_output_',format(Sys.time(),'%Y_%m_%d_%H-%M-%S'),'.mp4'))
-	image_write_video(videoImg, path = paste0(downloadLocationVideo,videoName), framerate = 40)
+	image_write_video(videoImg, path = paste0(downloadLocationVideo,videoName), framerate = framerate)
 }

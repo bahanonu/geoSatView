@@ -23,6 +23,9 @@ timeSetp = seq.POSIXt(from=as.POSIXct(strptime(startTime, "%Y-%m-%d,%H:%M"),tz =
        to=as.POSIXct(strptime(endTime, "%Y-%m-%d,%H:%M"),tz = "UTC"),
        by="5 min")
 
+# https://zoom.earth/#view=44,-140.6,5z/date=,-7/layers=fires
+zoomEarthBaseUrl = "https://zoom.earth/#view=44,-140.6,5z/date=%s,-7/layers=fires"
+
 # Int: size of chunks for webshot
 chunkSize = 140
 
@@ -68,7 +71,9 @@ for (i in c(1:length(timeSetp))) {
 	if(substr(timeSetp[i],12,16)!=""){
 		filePathH = file.path(downloadLocation,paste0(substr(timeSetp[i],1,10),"_",substr(timeSetp[i],12,13),substr(timeSetp[i],15,16),'.jpg'))
 		if(!file.exists(filePathH)){
-			urlList = c(urlList,paste0("https://zoom.earth/#view=44,-140.6,5z/date=",substr(timeSetp[i],1,10),",",substr(timeSetp[i],12,16),",-7/layers=fires"))
+			# urlList = c(urlList,paste0(zoomEarthBaseUrl,substr(timeSetp[i],1,10),",",substr(timeSetp[i],12,16),",-7/layers=fires"))
+			thisURL = sprintf(zoomEarthBaseUrl,paste0(substr(timeSetp[i],1,10),",",substr(timeSetp[i],12,16)))
+			urlList = c(urlList,thisURL)
 			print(paste0(substr(timeSetp[i],1,10),"_",substr(timeSetp[i],12,13),substr(timeSetp[i],15,16),'.jpg'))
 			fileList = c(fileList,filePathH)
 		}

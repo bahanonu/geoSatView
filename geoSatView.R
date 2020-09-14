@@ -11,7 +11,7 @@
 	# 2020.08.19 [11:36:16] - Added automatic calculation of sunrise and sunset using suncalc package. Will also automatically load previously cropped images if want to re-create the video output after already downloading/cropping images. Added 'av' package loading.
 	# 2020.08.24 [12:22:03] - Made downloading of the files parallel.
 	# 2020.09.11 [11:26:20] - Added additional crop type and save movie file based on system time. Automatically check for and create sub-directories.
-	# 2020.09.13 [20:20:02] - Make this function call either NOAA or zoomEarth based download
+	# 2020.09.13 [20:20:02] - Make this function call either NOAA or zoomEarth based download with user options to start.
 # TODO
 	# Add a GUI so users can pick two crop areas and will automatically do the rest
 	# Potentially convert to EBImage for processing images, could be faster.
@@ -47,16 +47,16 @@ thisFileFolder <- function() {
 
 geoSatViewPath = thisFileFolder()
 
-source(file.path(geoSatViewPath,"geoSatView_makeVideoList.R"))
+source(file.path(geoSatViewPath,"R","geoSatView_makeVideoList.R"))
 
 if (!length(userChoice)) {
 	cat("You canceled the choice\n")
 }else if(userChoice=="NOAA"){
 	print(paste0('Running geoSatView: ',userChoice))
 	dataDir = 'data_noaa/'
-	source(paste0(geoSatViewPath,"/geoSatView_noaa.R"))
+	source(file.path(geoSatViewPath,"R","geoSatView_noaa.R"))
 }else if(userChoice=="zoomEarth"){
 	print(paste0('Running geoSatView: ',userChoice))
 	dataDir = 'data_zoom_earth/'
-	source(paste0(geoSatViewPath,"/geoSatView_zoomEarth.R"))
+	source(file.path(geoSatViewPath,"R","geoSatView_zoomEarth.R"))
 }
