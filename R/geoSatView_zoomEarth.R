@@ -1,18 +1,27 @@
+geoSatView_zoomEarth <- function(dataDir,createVidFlag){
 # Biafra Ahanonu
 # Started: 2020.09.11 [‏‎18:46:52]
 # Downloads and makes a video from zoom.earth
 # Requires ffmpeg if createVidFlag==2
 # Changelog
 	# 2020.09.13 [20:10:19] - ffmpeg concat requires paths relative to the text file, fix so that is what is done.
+	# 2020.09.15 [16:43:22] - Add parallel support for downloading
+
+# =================================================
+# Setup cluster
+# detect the number of cores
+n.cores <- detectCores()
 
 # =================================================
 # PARAMETERS
 
 # SAVE LOCATIONS
-dowloadDir = file.path(dataDir,'data')
-downloadLocation = file.path(getwd(),dataDir,'data')
-downloadLocationCrop = file.path(getwd(),dataDir,'data_crop')
-downloadLocationVideo = file.path(getwd(),'video')
+# dataDir = dataDirList[[userChoice]]
+# dowloadDir = file.path(dataDir,'data')
+dowloadDir = file.path('data')
+downloadLocation = file.path(dataDir,'data')
+downloadLocationCrop = file.path(dataDir,'data_crop')
+downloadLocationVideo = file.path(dataDir,'video')
 
 # Int: download up to this number of days ago
 daysPast = 7
@@ -20,14 +29,14 @@ daysPast = 7
 startTime = paste0(Sys.Date()-daysPast,",00:00")
 endTime = paste0(Sys.Date(),paste0(","),format(Sys.time(),'%H:%M'))
 timeSetp = seq.POSIXt(from=as.POSIXct(strptime(startTime, "%Y-%m-%d,%H:%M"),tz = "UTC"),
-       to=as.POSIXct(strptime(endTime, "%Y-%m-%d,%H:%M"),tz = "UTC"),
-       by="5 min")
+	   to=as.POSIXct(strptime(endTime, "%Y-%m-%d,%H:%M"),tz = "UTC"),
+	   by="5 min")
 
 # https://zoom.earth/#view=44,-140.6,5z/date=,-7/layers=fires
 zoomEarthBaseUrl = "https://zoom.earth/#view=44,-140.6,5z/date=%s,-7/layers=fires"
 
 # Int: size of chunks for webshot
-chunkSize = 140
+chunkSize = 50
 
 # Automatically get UTC time for sunset and sunrise near San Francisco, CA
 sunTime = getSunlightTimes(Sys.Date(),lat = 37.7749, lon = -122.4194,tz = "America/Los_Angeles")
@@ -52,6 +61,49 @@ webshotDownload <- function(urlListInput,fileListInput,delayInput=0.5){
 		delay = delayInput)
 }
 
+downloadImagesZoomEarth <- function(i,urlList,fileList,chunkSize,nFiles){
+	# Download in chunks (to avoid errors) using webshot
+	library(webshot)
+	if(nFiles>0){
+		# for (i in seq(1,nFiles,chunkSize)) {
+			if((i+chunkSize)>nFiles){
+				endI = nFiles
+			}else{
+				endI = i+(chunkSize-1)
+			}
+			sliceI = c(i:endI)
+			print(c(i,endI))
+			webshotDownload(urlList[sliceI],fileList[sliceI],0.5)
+		# }
+	}else{
+		print('Do not need to download files.')
+	}
+}
+
+downloadImagesZoomEarthRe <- function(chunkSize,urlList,fileList,chunkSize2,nFiles){
+	# Download in chunks (to avoid errors) using webshot
+	library(webshot)
+	if(nFiles>0){
+		# Re-download any incomplete or incorrectly downloaded date-time screen captures
+		urlListRe = c()
+		fileListRe = c()
+		fileSizeRe = c()
+		for (fileNo in c(1:nFiles)) {
+			fileSizeH = file.info(fileList[fileNo])$size
+			fileSizeRe = c(fileSizeRe,fileSizeH)
+			if(fileSizeH<178744|!file.exists(fileList[fileNo])){
+				urlListRe = c(urlListRe,urlList[fileNo])
+				fileListRe = c(fileListRe,fileList[fileNo])
+			}
+		}
+		if(length(urlListRe)>0){
+			webshotDownload(urlListRe,fileListRe,1)
+		}else{
+			print('Do not need to re-download files.')
+		}
+	}
+}
+
 # =================================================
 # Create sub-directories if they do not already exist.
 for (dirHere in c(downloadLocation,downloadLocationCrop,downloadLocationVideo)) {
@@ -64,6 +116,7 @@ for (dirHere in c(downloadLocation,downloadLocationCrop,downloadLocationVideo)) 
 }
 
 # =================================================
+# MAIN
 urlList = c()
 fileList = c()
 
@@ -80,41 +133,28 @@ for (i in c(1:length(timeSetp))) {
 	}
 }
 
-# Download in chunks (to avoid errors) using webshot
 nFiles = length(fileList)
+
 if(nFiles>0){
-	for (i in seq(1,nFiles,chunkSize)) {
-		if((i+chunkSize)>nFiles){
-			endI = nFiles
-		}else{
-			endI = i+(chunkSize-1)
-		}
-		sliceI = c(i:endI)
-		print(c(i,endI))
-		webshotDownload(urlList[sliceI],fileList[sliceI],0.5)
-	}
+	system.time({
+		clust <- makeCluster(n.cores,outfile="progress_zoomEarth.log")
+		successList <- parLapply(clust,
+			seq(1,nFiles,chunkSize),
+			fun=downloadImagesZoomEarth,
+			urlList=urlList,fileList=fileList,chunkSize=chunkSize,nFiles=nFiles)
+	})
+	# system.time({
+	# 	clust <- makeCluster(n.cores,outfile="progress_zoomEarth.log")
+	# 	successList <- parLapply(clust,
+	# 		seq(1,nFiles,chunkSize),
+	# 		fun=downloadImagesZoomEarthRe,
+	# 		urlList=urlList,fileList=fileList,chunkSize=chunkSize,nFiles=nFiles)
+	# })
+	downloadImagesZoomEarthRe(chunkSize,urlList,fileList,chunkSize,nFiles)
 
-	# Re-download any incomplete or incorrectly downloaded date-time screen captures
-	urlListRe = c()
-	fileListRe = c()
-	fileSizeRe = c()
-	for (fileNo in c(1:nFiles)) {
-		fileSizeH = file.info(fileList[fileNo])$size
-		fileSizeRe = c(fileSizeRe,fileSizeH)
-		if(fileSizeH<178744|!file.exists(fileList[fileNo])){
-			urlListRe = c(urlListRe,urlList[fileNo])
-			fileListRe = c(fileListRe,fileList[fileNo])
-		}
-	}
-
-	if(length(urlListRe)>0){
-		webshotDownload(urlListRe,fileListRe,1)
-	}else{
-		print('Do not need to re-download files.')
-	}
-}else{
-	print('Do not need to download files.')
+	stopCluster(clust)
 }
+
 
 # =================================================
 # Save as a video for later viewing
@@ -131,4 +171,6 @@ if(createVidFlag==2){
 	image_write_video(videoImg, path = videoName, framerate = 40)
 }else{
 	print('Invalid video create settings.')
+}
+
 }
