@@ -1,3 +1,5 @@
+geoSatView_noaa <- function(dataDir,createVidFlag){
+
 # geoSatView
 	# Biafra Ahanonu
 	# started: 2018.11.17
@@ -19,7 +21,6 @@
 # Setup cluster
 # detect the number of cores
 n.cores <- detectCores()
-
 # =================================================
 # Download parameters and information
 # Str: either GOES17 or GOES16
@@ -51,10 +52,11 @@ if(geosType=="GOES16"){
 # =================================================
 # PARAMETERS
 # Set locations for downloading files along with cropped versions
-dowloadDir = file.path(dataDir,'data_crop/')
-downloadLocation = file.path(getwd(),dataDir,'data/')
-downloadLocationCrop = file.path(getwd(),dataDir,'data_crop/')
-downloadLocationVideo = file.path(getwd(),'video/')
+# dowloadDir = file.path(dataDir,'data_crop/')
+dowloadDir = file.path('data_crop/')
+downloadLocation = file.path(dataDir,'data/')
+downloadLocationCrop = file.path(dataDir,'data_crop/')
+downloadLocationVideo = file.path(dataDir,'video/')
 
 # VIDEO SETTINGS
 # Binary: 1 = create AVI video, 0 = do not create video, 2 = create using ffmpeg system call (fastest)
@@ -145,14 +147,13 @@ for (dirHere in c(downloadLocation,downloadLocationCrop,downloadLocationVideo)) 
 		dir.create(dirHere)
 	}
 }
-
 # =================================================
 # Download
 successList = c()
 nLinks = length(urlList)
 # for (fileNo in c(1:nLinks)) {
-downloadImages <- function(fileNo){
-  fileName = urlList[fileNo]
+downloadImages <- function(fileNo,urlList,downloadLocation,URL,successList,nLinks){
+	fileName = urlList[fileNo]
 	destfile = file.path(downloadLocation,fileName)
 	fileURL = paste0(URL,fileName)
 	successList[fileNo] = 0
@@ -179,23 +180,19 @@ downloadImages <- function(fileNo){
 	return(successList[fileNo])
 }
 
+# stop()
 system.time({
-  clust <- makeCluster(n.cores+4,outfile="progress.log")
-  clusterExport(clust, c("urlList","downloadLocation","URL","successList","nLinks"))
-  successList <- parLapply(clust, c(1:nLinks), downloadImages)})
+	clust <- makeCluster(n.cores+4,outfile="progress.log")
+	# clusterExport(clust, c("urlList","downloadLocation","URL","successList","nLinks"))
+	successList <- parLapply(clust,
+		c(1:nLinks),
+		fun=downloadImages,
+		urlList=urlList,downloadLocation=downloadLocation,URL=URL,successList=successList,nLinks=nLinks)
+})
 
 stopCluster(clust)
 
 
-# =================================================
-# Make video using ffmpeg
-if(createVidFlag==2){
-	geoSatView_makeVideoList(downloadLocationCrop,fileListSavePath,2,sunsetTime,sunriseTime,downloadLocationVideo,dowloadDir,8,11,"NOAA")
-	shellCmd = paste0('ffmpeg.exe -r "',framerate,'" -f concat -safe 0 -i ',fileListSavePath,' -c:v libx264 -pix_fmt yuv420p "',videoName,'"')
-	shell(shellCmd)
-	# system(shellCmd)
-	# stop()
-}else if(createVidFlag==1){
 # =================================================
 # Find all image files, crop, and save to alternative folder
 fileList <- list.files(downloadLocation, "jpg")
@@ -299,11 +296,11 @@ for (fileNo in c(1:nLinks)) {
 		grid.raster(finalImg, width=unit(1,"npc"), height=unit(1,"npc"))
 		dev.off()
 	}else if(file.exists(cropDestFile)&flagGo==TRUE){
-		print(paste0(fileNo,'/',nLinks,' | Loading: ',destfile))
-		# Load file
-		finalImg <- image_read(cropDestFile)
 		# Concatenate images to later create video file
 		if(createVidFlag==1){
+			print(paste0(fileNo,'/',nLinks,' | Loading: ',destfile))
+			# Load file
+			finalImg <- image_read(cropDestFile)
 			if(length(videoImg)==0){
 				videoImg = finalImg
 			}else{
@@ -323,9 +320,19 @@ for (fileNo in c(1:nLinks)) {
 		print(paste0(fileNo,'/',nLinks,' | Don\'t copy: ',destfile))
 	}
 }
-
+# =================================================
+if(createVidFlag==2){
+	# Make video using ffmpeg
+	geoSatView_makeVideoList(downloadLocationCrop,fileListSavePath,2,sunsetTime,sunriseTime,downloadLocationVideo,dowloadDir,8,11,"NOAA")
+	shellCmd = paste0('ffmpeg.exe -r "',framerate,'" -f concat -safe 0 -i ',fileListSavePath,' -c:v libx264 -pix_fmt yuv420p "',videoName,'"')
+	shell(shellCmd)
+	# system(shellCmd)
+	# stop()
+}else if(createVidFlag==1){
 	# =================================================
 	# Save as a video for later viewing
 	videoName = file.path(downloadLocationVideo,paste0('geoSatView_output_',format(Sys.time(),'%Y_%m_%d_%H-%M-%S'),'.mp4'))
 	image_write_video(videoImg, path = paste0(downloadLocationVideo,videoName), framerate = framerate)
+}
+
 }
