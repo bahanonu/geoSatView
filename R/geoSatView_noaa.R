@@ -13,6 +13,7 @@ geoSatView_noaa <- function(dataDir,createVidFlag){
 	# 2020.08.19 [11:36:16] - Added automatic calculation of sunrise and sunset using suncalc package. Will also automatically load previously cropped images if want to re-create the video output after already downloading/cropping images. Added 'av' package loading.
 	# 2020.08.24 [12:22:03] - Made downloading of the files parallel.
 	# 2020.09.11 [11:26:20] - Added additional crop type and save movie file based on system time. Automatically check for and create sub-directories.
+	# 2020.09.16 [10:37:03] - Allow speeding through night time.
 # TODO
 	# Add a GUI so users can pick two crop areas and will automatically do the rest
 	# Potentially convert to EBImage for processing images, could be faster.
@@ -199,6 +200,10 @@ fileList <- list.files(downloadLocation, "jpg")
 nLinks = length(fileList)
 videoImg = c()
 
+flagGoNegNum = 20
+flagGoIgnore = TRUE
+flagGoCount = flagGoNegNum
+
 for (fileNo in c(1:nLinks)) {
 	fileName = fileList[fileNo]
 	destfile = file.path(downloadLocation,fileName)
@@ -208,6 +213,18 @@ for (fileNo in c(1:nLinks)) {
 	fileTime = as.numeric(substr(fileName,8,11))
 	if(is.na(fileTime)){next}
 	flagGo = fileTime<sunsetTime|fileTime>sunriseTime
+
+	if(flagGo==FALSE&flagGoIgnore==TRUE){
+		# flagGo = runif(1)>0.8
+		if(flagGoCount==flagGoNegNum){
+			flagGo = TRUE
+		}
+		flagGoCount = flagGoCount - 1
+		if(flagGoCount==0){
+			flagGoCount = flagGoNegNum
+		}
+	}
+	flagGo = TRUE
 
 	if(!file.exists(cropDestFile)&flagGo==TRUE){
 		print(paste0(fileNo,'/',nLinks,' | Copying: ',destfile))
