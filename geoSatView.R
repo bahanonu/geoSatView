@@ -18,6 +18,7 @@
 	# 2020.09.13 [20:20:02] - Make this function call either NOAA or zoomEarth based download with user options to start.
 	# 2020.09.15 [11:50:32] - Wrapped calls to NOAA and Zoom Earth scripts in a function to allow running both in the same run.
 	# 2020.09.15 [18:32:21] - Everything inside a function, call with geoSatView.
+	# 2020.10.01 [‏‎14:40:25] - Ensure data directories are created.
 # TODO
 	# Add a GUI so users can pick two crop areas and will automatically do the rest
 	# Potentially convert to EBImage for processing images, could be faster.
@@ -87,6 +88,17 @@ geoSatView <- function(dataDirList=c(),userChoice=c(),createVidFlag=c()){
 		dataDirList = list()
 		dataDirList$NOAA = file.path(getwd(),'data_noaa/')
 		dataDirList$zoomEarth = file.path(getwd(),'data_zoom_earth/')
+	}
+
+	# =================================================
+	# Create sub-directories if they do not already exist.
+	for (dirHere in dataDirList) {
+		if(dir.exists(dirHere)==TRUE){
+			print(paste0('Directory exists: ',dirHere))
+		}else{
+			print(paste0('Creating: ',dirHere))
+			dir.create(dirHere)
+		}
 	}
 
 	if(length(userChoice)==0){

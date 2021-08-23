@@ -17,11 +17,12 @@ The script requires `ffmpeg` be installed on users systems if
 
 ### Usage
 To run:
-- download `R` (or `RStudio`).
-- either download a zip of the repository or make a new folder and clone with `git clone https://github.com/bahanonu/geoSatView.git`.
+- Download `R` (or `RStudio`).
+- Either download a zip of the repository or make a new folder and clone with `git clone https://github.com/bahanonu/geoSatView.git`.
 - Make the working directory in `R` the repository root directory and type the below.
 - Alternatively, users can download files to a separate folder by making that folder the active working directory then running `source('path/to/geoSatView.R');geoSatView()`
 - Users can choose between NOAA or [zoom.earth](zoom.earth) sources to create the video. Videos are stored in the `data_noaa` or `data_zoom_earth` sub-directories that are created.
+- Downloading is parallelized, so output will be stored in `progress.log` in root directory.
 
 ```R
 source('geoSatView.R')
@@ -70,4 +71,4 @@ Notes:
 
 Copyright (c) 2018–2020 Biafra Ahanonu
 
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU. Attribution is appreciated, but not required, if parts of the software are used elsewhere.
+This project is licensed under the terms of the MIT license. See LICENSE file for details.

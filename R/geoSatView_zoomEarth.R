@@ -5,7 +5,8 @@ geoSatView_zoomEarth <- function(dataDir,createVidFlag){
 # Requires ffmpeg if createVidFlag==2
 # Changelog
 	# 2020.09.13 [20:10:19] - ffmpeg concat requires paths relative to the text file, fix so that is what is done.
-	# 2020.09.15 [16:43:22] - Add parallel support for downloading
+	# 2020.09.15 [16:43:22] - Add parallel support for downloading.
+	# 2021.08.23 [08:38:34] - Added dir.create to recursive = TRUE so sub-directories created properly.
 
 # =================================================
 # Setup cluster
@@ -111,7 +112,7 @@ for (dirHere in c(downloadLocation,downloadLocationCrop,downloadLocationVideo)) 
 		print(paste0('Directory exists: ',dirHere))
 	}else{
 		print(paste0('Creating: ',dirHere))
-		dir.create(dirHere)
+		dir.create(dirHere, recursive = TRUE)
 	}
 }
 
