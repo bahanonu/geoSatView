@@ -14,6 +14,7 @@ geoSatView_noaa <- function(dataDir,createVidFlag){
 	# 2020.08.24 [12:22:03] - Made downloading of the files parallel.
 	# 2020.09.11 [11:26:20] - Added additional crop type and save movie file based on system time. Automatically check for and create sub-directories.
 	# 2020.09.16 [10:37:03] - Allow speeding through night time.
+	# 2021.08.23 [08:38:34] - Added dir.create to recursive = TRUE so sub-directories created properly.
 # TODO
 	# Add a GUI so users can pick two crop areas and will automatically do the rest
 	# Potentially convert to EBImage for processing images, could be faster.
@@ -145,7 +146,7 @@ for (dirHere in c(downloadLocation,downloadLocationCrop,downloadLocationVideo)) 
 		print(paste0('Directory exists: ',dirHere))
 	}else{
 		print(paste0('Creating: ',dirHere))
-		dir.create(dirHere)
+		dir.create(dirHere, recursive = TRUE)
 	}
 }
 # =================================================
